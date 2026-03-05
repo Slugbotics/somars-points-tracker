@@ -1,4 +1,4 @@
-// ─── SOMARS Points Tracker · app.js ─────────────────────────────────────────
+// ─── SOMARS Points Tracker · app.js (Firebase Firestore) ─────────────────────
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let members = [];
@@ -6,14 +6,75 @@ let selectedMemberId = null;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init() {
-  const saved = localStorage.getItem("somars_members");
-  members = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
   generateStars();
-  renderAll();
+  showConnectionStatus("connecting");
+
+  // Real-time listener — every connected client updates instantly
+  db.collection("members")
+    .orderBy("id")
+    .onSnapshot(snapshot => {
+      if (snapshot.empty) {
+        seedDatabase();
+      } else {
+        members = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+        showConnectionStatus("live");
+        renderAll();
+        // If modal is open, refresh the pts display too
+        if (selectedMemberId !== null) {
+          const m = members.find(x => x.id === selectedMemberId);
+          if (m) document.getElementById("modal-member-pts").textContent = m.points.toLocaleString() + " pts";
+        }
+      }
+    }, err => {
+      console.error("Firestore error:", err);
+      showConnectionStatus("error");
+      const saved = localStorage.getItem("somars_members_fallback");
+      if (saved) members = JSON.parse(saved);
+      renderAll();
+    });
 }
 
-function save() {
-  localStorage.setItem("somars_members", JSON.stringify(members));
+// ── Seed DB on first launch ───────────────────────────────────────────────────
+async function seedDatabase() {
+  showConnectionStatus("seeding");
+  const batch = db.batch();
+  DEFAULT_MEMBERS.forEach(m => {
+    const ref = db.collection("members").doc(String(m.id));
+    batch.set(ref, m);
+  });
+  await batch.commit();
+}
+
+// ── Connection status badge ───────────────────────────────────────────────────
+function showConnectionStatus(state) {
+  let badge = document.getElementById("conn-badge");
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.id = "conn-badge";
+    badge.style.cssText = `
+      position:fixed; bottom:18px; right:18px; z-index:300;
+      padding:7px 14px; border-radius:20px; font-size:0.75rem;
+      font-weight:700; letter-spacing:0.5px; backdrop-filter:blur(8px);
+      border:1px solid; transition: all 0.4s;
+    `;
+    document.body.appendChild(badge);
+  }
+  const states = {
+    connecting: { text: "📡 Connecting...",    bg: "rgba(255,180,0,0.15)",  border: "#ffb400", color: "#ffb400" },
+    seeding:    { text: "🌱 Setting up DB...", bg: "rgba(0,212,255,0.15)",  border: "#00d4ff", color: "#00d4ff" },
+    live:       { text: "🟢 Live — synced",    bg: "rgba(0,232,120,0.15)",  border: "#00e878", color: "#00e878" },
+    error:      { text: "⚠️ Offline (local)",  bg: "rgba(255,80,80,0.15)",  border: "#ff5050", color: "#ff5050" },
+  };
+  const s = states[state];
+  badge.textContent       = s.text;
+  badge.style.background  = s.bg;
+  badge.style.borderColor = s.border;
+  badge.style.color       = s.color;
+  badge.style.opacity     = "1";
+  if (state === "live") {
+    clearTimeout(badge._hideTimer);
+    badge._hideTimer = setTimeout(() => { badge.style.opacity = "0"; }, 4000);
+  }
 }
 
 // ── Stars background ──────────────────────────────────────────────────────────
@@ -56,16 +117,10 @@ function renderHomeStats() {
   const total = members.reduce((s, m) => s + m.points, 0);
   document.getElementById("total-points").textContent = total.toLocaleString();
   document.getElementById("active-members").textContent = members.length;
-
-  // awards unlocked = number of award tiers that ANY member has hit individually
-  // (alternatively: total points vs tiers — let's use total)
   const unlocked = AWARDS.filter(a => total >= a.points).length;
   document.getElementById("awards-unlocked").textContent = unlocked;
-
   const next = AWARDS.find(a => total < a.points);
-  document.getElementById("next-award-pts").textContent = next
-    ? next.points.toLocaleString()
-    : "MAX ✅";
+  document.getElementById("next-award-pts").textContent = next ? next.points.toLocaleString() : "MAX ✅";
 }
 
 // ── Leaderboard ───────────────────────────────────────────────────────────────
@@ -128,9 +183,7 @@ function renderAwardsFull() {
     const pct  = Math.min(100, total > 0 ? Math.round((total / a.points) * 100) : 0);
     return `
       <div class="award-full-card ${done ? "award-done" : ""} ${a.special ? "award-special" : ""}">
-        <div class="afc-left">
-          <div class="afc-icon">${a.icon}</div>
-        </div>
+        <div class="afc-left"><div class="afc-icon">${a.icon}</div></div>
         <div class="afc-body">
           <div class="afc-title">${a.title}
             ${a.special ? '<span class="special-badge">⭐ SPECIAL</span>' : ""}
@@ -166,16 +219,26 @@ function closeModal(e) {
 function closeModalDirect() {
   document.getElementById("modal").classList.remove("open");
   selectedMemberId = null;
-  renderAll();
 }
 
-function addPoints(amount) {
+// ── Add points → Firestore ────────────────────────────────────────────────────
+async function addPoints(amount) {
   if (selectedMemberId === null) return;
   const m = members.find(x => x.id === selectedMemberId);
-  m.points = Math.max(0, m.points + amount);
-  save();
-  document.getElementById("modal-member-pts").textContent = m.points.toLocaleString() + " pts";
-  flashBtn();
+  const newPoints = Math.max(0, m.points + amount);
+
+  // Optimistic local update so the modal feels instant
+  m.points = newPoints;
+  document.getElementById("modal-member-pts").textContent = newPoints.toLocaleString() + " pts";
+  flashPts();
+
+  try {
+    await db.collection("members").doc(String(selectedMemberId)).update({ points: newPoints });
+    localStorage.setItem("somars_members_fallback", JSON.stringify(members));
+  } catch (err) {
+    console.error("Failed to write points:", err);
+    showConnectionStatus("error");
+  }
 }
 
 function addCustomPoints() {
@@ -185,17 +248,23 @@ function addCustomPoints() {
   document.getElementById("custom-input").value = "";
 }
 
-function saveName() {
+// ── Save name → Firestore ─────────────────────────────────────────────────────
+async function saveName() {
   const val = document.getElementById("name-input").value.trim();
-  if (!val) return;
+  if (!val || selectedMemberId === null) return;
   const m = members.find(x => x.id === selectedMemberId);
   m.name = val;
-  save();
   document.getElementById("modal-member-name").textContent = val;
+  try {
+    await db.collection("members").doc(String(selectedMemberId)).update({ name: val });
+  } catch (err) {
+    console.error("Failed to save name:", err);
+    showConnectionStatus("error");
+  }
 }
 
-function flashBtn() {
-  // small visual feedback
+// ── Visual feedback ───────────────────────────────────────────────────────────
+function flashPts() {
   const pts = document.getElementById("modal-member-pts");
   pts.classList.add("flash");
   setTimeout(() => pts.classList.remove("flash"), 400);

@@ -742,3 +742,173 @@ body {
   .nav-sub { display: none; }
   .lb-bar-wrap { display: none; }
 }
+
+/* ── Leaderboard name link ───────────────────────────────────────────────── */
+.lb-name-link {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.lb-name-link:hover {
+  color: var(--accent);
+  text-shadow: 0 0 8px var(--accent);
+  text-decoration: underline;
+}
+
+/* ── Group milestone nodes (home page) ───────────────────────────────────── */
+.milestone-nodes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.milestone-node {
+  flex: 1 1 160px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  text-align: center;
+  backdrop-filter: blur(6px);
+  opacity: 0.7;
+  transition: all 0.2s;
+}
+.milestone-node:hover { opacity: 0.9; transform: translateY(-3px); }
+.milestone-node.node-done { opacity: 1; border-color: rgba(0,232,120,0.45); }
+.milestone-node.node-special {
+  border-color: rgba(240,192,64,0.45);
+  box-shadow: 0 0 20px rgba(240,192,64,0.12);
+}
+
+.node-icon { font-size: 2.2rem; margin-bottom: 6px; }
+.node-pts  { font-size: 0.85rem; font-weight: 800; margin-bottom: 2px; }
+.node-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 10px; }
+.node-bar-wrap {
+  height: 5px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.node-bar { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.node-pct { font-size: 0.7rem; color: var(--text-muted); }
+
+/* ── Profile Page ────────────────────────────────────────────────────────── */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,212,255,0.1);
+  border: 1px solid var(--card-border);
+  color: var(--accent);
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 28px;
+  transition: all 0.2s;
+}
+.back-btn:hover {
+  background: rgba(0,212,255,0.2);
+  border-color: var(--accent);
+}
+
+.profile-page-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 28px 28px;
+  margin-bottom: 28px;
+  backdrop-filter: blur(8px);
+  flex-wrap: wrap;
+}
+
+.pp-icon {
+  font-size: 4rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.pp-icon-inner { font-size: 4rem; }
+
+/* Large photo on profile page */
+.member-img-icon.pp-icon-inner,
+img.pp-icon-inner {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--accent);
+}
+
+.pp-header-info { flex: 1; min-width: 160px; }
+
+.pp-name {
+  font-size: 1.7rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.pp-pts {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--accent);
+  text-shadow: 0 0 12px var(--accent);
+  margin-bottom: 4px;
+}
+
+.pp-rank { font-size: 0.88rem; font-weight: 600; }
+
+.pp-edit-btn { flex-shrink: 0; }
+
+/* ── Profile sections ────────────────────────────────────────────────────── */
+.profile-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-section-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  backdrop-filter: blur(8px);
+}
+
+/* ── Bio edit area ────────────────────────────────────────────────────────── */
+.bio-edit-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.bio-edit-wrap textarea {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-size: 0.88rem;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+  line-height: 1.5;
+}
+.bio-edit-wrap textarea:focus { border-color: var(--accent); }
+.bio-edit-wrap .custom-add-btn { align-self: flex-end; }
+
+/* ── Responsive profile page ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .profile-page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .pp-name { font-size: 1.3rem; }
+  .pp-icon { font-size: 3rem; }
+}

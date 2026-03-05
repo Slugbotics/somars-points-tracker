@@ -19,13 +19,13 @@
       <span class="nav-sub">Points Command</span>
     </div>
     <div class="nav-links">
-      <button class="nav-btn active" onclick="showPage('home')" id="nav-home">🏠 Home Base</button>
-      <button class="nav-btn" onclick="showPage('members')" id="nav-members">👨‍🚀 Crew Roster</button>
-      <button class="nav-btn" onclick="showPage('awards')" id="nav-awards">🏆 Awards Bay</button>
+      <button class="nav-btn active" onclick="showPage('home')"    id="nav-home">🏠 Home Base</button>
+      <button class="nav-btn"        onclick="showPage('members')" id="nav-members">⚡ Add Points</button>
+      <button class="nav-btn"        onclick="showPage('awards')"  id="nav-awards">🏆 Awards Bay</button>
     </div>
   </nav>
 
-  <!-- HOME PAGE -->
+  <!-- ═══════════════ HOME PAGE ═══════════════ -->
   <div class="page active" id="page-home">
     <div class="hero">
       <div class="drone-anim">🚁</div>
@@ -33,6 +33,7 @@
       <p class="hero-sub">Aerospace & Drone Club · Points Command Center</p>
     </div>
 
+    <!-- Top stats -->
     <div class="stats-grid">
       <div class="stat-card glow-blue">
         <div class="stat-icon">🌍</div>
@@ -46,62 +47,101 @@
       </div>
       <div class="stat-card glow-green">
         <div class="stat-icon">🏆</div>
-        <div class="stat-label">Awards Unlocked</div>
+        <div class="stat-label">Individual Awards Earned</div>
         <div class="stat-value" id="awards-unlocked">0</div>
       </div>
       <div class="stat-card glow-purple">
         <div class="stat-icon">🎯</div>
         <div class="stat-label">Next Group Milestone</div>
-        <div class="stat-value" id="next-award-pts">500,000</div>
+        <div class="stat-value" id="next-award-pts">—</div>
       </div>
     </div>
 
-    <div class="section-title">🎯 Mission Leaderboard</div>
-    <div class="leaderboard" id="leaderboard"></div>
-
+    <!-- Group milestone progress nodes -->
     <div class="section-title">🚀 Group Mission Milestones</div>
     <p class="section-sub">Combined points from ALL crew members unlock these rewards for everyone</p>
-    <div class="awards-preview" id="group-milestones-preview"></div>
+    <div id="group-milestone-nodes" class="milestone-nodes"></div>
 
-    <div class="section-title">⭐ Individual Award Tiers</div>
-    <p class="section-sub">Each crew member earns these based on their own points</p>
-    <div class="awards-preview" id="awards-preview"></div>
+    <!-- Leaderboard — names link to profile pages -->
+    <div class="section-title">🎯 Mission Leaderboard</div>
+    <div class="leaderboard" id="leaderboard"></div>
   </div>
 
-  <!-- MEMBERS PAGE -->
+  <!-- ═══════════════ ADD POINTS PAGE ═══════════════ -->
   <div class="page" id="page-members">
     <div class="page-header">
-      <h2>👨‍🚀 Crew Roster</h2>
-      <p>Select a crew member to log flight hours (points)</p>
+      <h2>⚡ Add Points</h2>
+      <p>Select a crew member to log their flight hours</p>
     </div>
-
     <div class="members-grid" id="members-grid"></div>
+
+    <div class="section-title" style="margin-top:48px">⭐ Individual Award Tiers</div>
+    <p class="section-sub">Each crew member earns these based on their own points</p>
+    <div class="awards-full" id="awards-full"></div>
   </div>
 
-  <!-- AWARDS PAGE -->
+  <!-- ═══════════════ MEMBER PROFILE PAGE ═══════════════ -->
+  <div class="page" id="page-profile">
+    <button class="back-btn" onclick="showPage('home')">← Back to Home</button>
+    <div class="profile-page-header">
+      <!-- 🖼️ IMAGE RENDER POINT: renderMemberIcon() swaps emoji for <img> if
+           the icon field is a file path like "images/alice.jpg". See data.js. -->
+      <div id="pp-icon" class="pp-icon"></div>
+      <div class="pp-header-info">
+        <div class="pp-name" id="pp-name"></div>
+        <div class="pp-pts"  id="pp-pts"></div>
+        <div class="pp-rank" id="pp-rank"></div>
+      </div>
+      <button class="custom-add-btn pp-edit-btn" onclick="openAddPointsForProfile()">⚡ Add Points</button>
+    </div>
+
+    <div class="profile-sections">
+      <!-- Bio -->
+      <div class="profile-section-card">
+        <div class="modal-section-label">📝 Bio / Description</div>
+        <div class="bio-edit-wrap">
+          <textarea id="pp-bio-input" placeholder="Write a short bio — role, interests, favourite drone..." rows="4"></textarea>
+          <button class="custom-add-btn" onclick="saveProfileBio()">Save Bio</button>
+        </div>
+        <div id="pp-bio-display" class="profile-bio"></div>
+      </div>
+
+      <!-- Edit name -->
+      <div class="profile-section-card">
+        <div class="modal-section-label">✏️ Edit Name</div>
+        <div class="custom-row">
+          <input type="text" id="pp-name-input" placeholder="Change crew member name..." />
+          <button class="custom-add-btn" onclick="saveProfileName()">Save</button>
+        </div>
+      </div>
+
+      <!-- Personal awards -->
+      <div class="profile-section-card">
+        <div class="modal-section-label">🏅 Personal Awards Progress</div>
+        <div id="pp-awards" class="profile-awards-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ AWARDS PAGE ═══════════════ -->
   <div class="page" id="page-awards">
     <div class="page-header">
       <h2>🏆 Awards Bay</h2>
       <p>Earn points, unlock rewards, reach the stars</p>
     </div>
-
     <div class="section-title">🌍 Group Mission Milestones</div>
     <p class="section-sub">Unlock these rewards together as a club</p>
     <div class="awards-full" id="group-milestones-full"></div>
-
-    <div class="section-title" style="margin-top:48px">👨‍🚀 Individual Award Tiers</div>
-    <p class="section-sub">Each crew member earns these independently</p>
-    <div class="awards-full" id="awards-full"></div>
   </div>
 
-  <!-- POINT-ADD MODAL -->
+  <!-- ═══════════════ POINT-ADD MODAL ═══════════════ -->
   <div class="modal-overlay" id="modal" onclick="closeModal(event)">
     <div class="modal-box">
       <div class="modal-header">
         <span id="modal-member-icon">🚀</span>
         <div>
           <div class="modal-name" id="modal-member-name">Member</div>
-          <div class="modal-pts" id="modal-member-pts">0 pts</div>
+          <div class="modal-pts"  id="modal-member-pts">0 pts</div>
         </div>
         <button class="modal-close" onclick="closeModalDirect()">✕</button>
       </div>
@@ -135,57 +175,45 @@
         <button class="deduct-btn" onclick="addPoints(-100)">−100</button>
         <button class="deduct-btn" onclick="addPoints(-500)">−500</button>
       </div>
-
-      <div class="modal-section-label">✏️ Edit Name</div>
-      <div class="custom-row">
-        <input type="text" id="name-input" placeholder="New crew member name..." />
-        <button class="custom-add-btn" onclick="saveName()">Save</button>
-      </div>
-
-      <div class="modal-section-label">📝 Bio / Description</div>
-      <div class="bio-row">
-        <textarea id="bio-input" placeholder="Write a short bio — role, interests, favourite drone..." rows="3"></textarea>
-        <button class="custom-add-btn" onclick="saveBio()">Save</button>
-      </div>
     </div>
   </div>
 
-  <!-- PROFILE MODAL -->
-  <div class="modal-overlay" id="profile-modal" onclick="closeProfileModal(event)">
-    <div class="modal-box profile-modal-box">
-      <div class="modal-header">
-        <!-- 🖼️ IMAGE RENDER POINT — renderMemberIcon() checks if the icon is an
-             image path (starts with "images/" or ends in .jpg/.png/.webp/.gif)
-             and returns an <img> tag instead of a text span. To swap a member's
-             emoji to a photo, change their "icon" field in data.js to e.g.
-             "images/alice.jpg" and place the file in the images/ folder. -->
-        <span id="profile-icon" class="profile-icon-large"></span>
-        <div style="flex:1">
-          <div class="modal-name" id="profile-name"></div>
-          <div class="modal-pts" id="profile-pts"></div>
-          <div id="profile-rank-badge" class="profile-rank-badge"></div>
-        </div>
-        <button class="modal-close" onclick="closeProfileModalDirect()">✕</button>
-      </div>
-
-      <div class="modal-section-label">📝 Bio</div>
-      <div id="profile-bio" class="profile-bio"></div>
-
-      <div class="modal-section-label">🏅 Awards Progress</div>
-      <div id="profile-awards" class="profile-awards-list"></div>
-
-      <div style="margin-top:22px; text-align:center">
-        <button class="custom-add-btn" onclick="openEditModal()">⚡ Add / Edit Points</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Firebase SDK (v9 compat) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
-
   <script src="firebase-config.js"></script>
   <script src="data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
+  <!-- Stars background -->
+  <div class="stars" id="stars"></div>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="nav-icon">🛸</span>
+      <span class="nav-title">SOMARS</span>
+      <span class="nav-sub">Points Command</span>
+    </div>
+    <div class="nav-links">
+      <button class="nav-btn active" onclick="showPage('home')" id="nav-home">🏠 Home Base</button>
+      <button class="nav-btn" onclick="showPage('members')" id="nav-members">👨‍🚀 Crew Roster</button>
+      <button class="nav-btn" onclick="showPage('awards')" id="nav-awards">🏆 Awards Bay</button>
+    </div>
+  </nav>
+
+  <!-- HOME PAGE -->
+  <div class="page active" id="page-home">
+    <div class="hero">
+      <div class="drone-anim">🚁</div>
+      <h1 class="hero-title">SOMARS MISSION CONTROL</h1>
+      <p class="hero-sub">Aerospace & Drone Club · Points Command Center</p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card glow-blue">
+        <div class="stat-icon">🌍</div>
+        <div class="stat-label">Total Points In Orbit</div>
+        <div class="stat-value" id="total-points">0</div>
+      </div>

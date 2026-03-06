@@ -73,11 +73,17 @@ body {
 }
 
 .nav-icon { font-size: 1.7rem; }
+
 .nav-logo-img {
-  width: 32px;
-  height: 32px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
-  border-radius: 50%;
+}
+
+.explainer-logo-img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
 }
 
 .nav-title {
@@ -995,13 +1001,6 @@ img.pp-icon-inner {
   font-size: 2.8rem;
   flex-shrink: 0;
   line-height: 1;
-}
-
-.explainer-logo-img {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
-  border-radius: 50%;
 }
 
 .points-explainer-title {

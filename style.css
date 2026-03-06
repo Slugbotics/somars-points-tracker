@@ -139,8 +139,8 @@ body {
 }
 
 .hero-drone-img {
-  width: 100px;
-  height: 100px;
+  width: 200px;
+  height: 200px;
   object-fit: contain;
   filter: invert(1) drop-shadow(0 0 10px rgba(0, 212, 255, 0.5));
 }

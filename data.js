@@ -104,7 +104,7 @@ const AWARDS = [
   },
   {
     points:   5000,
-    icon:     "🚁",
+    icon:     "images/logos/simple_drone.png",
     title:    "Rotary Wing Ace",
     desc:     "5,000 points — rotors spinning, altitude rising.",
     color:    "#7B68EE",

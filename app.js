@@ -22,11 +22,20 @@ function startFirestoreListener() {
       if (snapshot.empty) {
         seedDatabase();
       } else {
-        members = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-        members.forEach(m => {
-          if (m.bio   === undefined) m.bio   = "";
-          if (m.icon  === undefined) m.icon  = "🚀";
-          if (m.name  === undefined) m.name  = `Crew Member ${m.id}`;
+        members = snapshot.docs.map(doc => {
+          const firestoreData = doc.data();
+          // Profile info (name, icon, bio) always comes from data.js — the source of truth.
+          // Only "points" is stored in and read from Firestore.
+          // This means editing data.js immediately updates names/icons/bios on the site.
+          const profile = DEFAULT_MEMBERS.find(m => m.id === firestoreData.id);
+          return {
+            docId:  doc.id,
+            id:     firestoreData.id,
+            points: firestoreData.points ?? 0,
+            name:   profile?.name || firestoreData.name  || `Crew Member ${firestoreData.id}`,
+            icon:   profile?.icon || firestoreData.icon  || "🚀",
+            bio:    profile?.bio  || firestoreData.bio   || "",
+          };
         });
         showConnectionStatus("live");
         renderAll();

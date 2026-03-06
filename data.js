@@ -57,12 +57,12 @@ const DEFAULT_MEMBERS = [
   //   bio    — one or two sentences about you; keep it short
   // ─────────────────────────────────────────────────────────────────────────
 
-  { id: 1,  name: "Crew Member 1",  points: 0, icon: "🚀", bio: "" },
-  { id: 2,  name: "Crew Member 2",  points: 0, icon: "🛸", bio: "" },
-  { id: 3,  name: "Crew Member 3",  points: 0, icon: "✈️", bio: "" },
-  { id: 4,  name: "Crew Member 4",  points: 0, icon: "🛩️", bio: "" },
-  { id: 5,  name: "Crew Member 5",  points: 0, icon: "🚁", bio: "" },
-  { id: 6,  name: "Crew Member 6",  points: 0, icon: "🛰️", bio: "" },
+  { id: 1,  name: "Amber B",  points: 0, icon: "images/member_pics/amber_face.jpg", bio: "I like drones and rockets" },
+  { id: 2,  name: "Nathan Pham",  points: 0, icon: "🛸", bio: "" },
+  { id: 3,  name: "Ethan James",  points: 0, icon: "✈️", bio: "" },
+  { id: 4,  name: "ROB WANDEL",  points: 0, icon: "🛩️", bio: "" },
+  { id: 5,  name: "SAM",  points: 0, icon: "🚁", bio: "" },
+  { id: 6,  name: "James Delaney",  points: 0, icon: "🛰️", bio: "" },
   { id: 7,  name: "Crew Member 7",  points: 0, icon: "🌟", bio: "" },
   { id: 8,  name: "Crew Member 8",  points: 0, icon: "⭐", bio: "" },
   { id: 9,  name: "Crew Member 9",  points: 0, icon: "🌙", bio: "" },

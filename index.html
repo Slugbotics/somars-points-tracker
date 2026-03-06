@@ -11,6 +11,38 @@
   <!-- Stars background -->
   <div class="stars" id="stars"></div>
 
+  <!-- ═══════════════ LOGIN OVERLAY ═══════════════ -->
+  <!-- Shown when no user is signed in. Hides the whole app. -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-box">
+      <div class="login-logo">🛸</div>
+      <h2 class="login-title">SOMARS Mission Control</h2>
+      <p class="login-sub">Sign in to add points · View-only if not signed in</p>
+
+      <div id="login-error" class="login-error" style="display:none"></div>
+
+      <div class="login-field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+
+      <button class="login-btn" onclick="doLogin()">🚀 Sign In</button>
+      <button class="login-guest-btn" onclick="continueAsGuest()">👁 View as Guest (read-only)</button>
+
+      <p class="login-note">
+        Don't have an account? Ask a SOMARS admin to add your email to the approved list,
+        then create an account in the
+        <a href="https://console.firebase.google.com/project/somars-points-tracker/authentication/users" target="_blank">
+          Firebase Console
+        </a>.
+      </p>
+    </div>
+  </div>
+
   <!-- NAV -->
   <nav class="navbar">
     <div class="nav-brand">
@@ -23,6 +55,8 @@
       <button class="nav-btn"        onclick="showPage('members')" id="nav-members">⚡ Add Points</button>
       <button class="nav-btn"        onclick="showPage('awards')"  id="nav-awards">🏆 Awards Bay</button>
     </div>
+    <!-- Auth status pill — injected here by app.js -->
+    <div id="auth-pill" class="auth-pill"></div>
   </nav>
 
   <!-- ═══════════════ HOME PAGE ═══════════════ -->
@@ -68,51 +102,53 @@
   </div>
 
   <!-- ═══════════════ ADD POINTS PAGE ═══════════════ -->
+  <!-- Grid is sorted by points (highest first) — see renderMembersGrid() in app.js -->
   <div class="page" id="page-members">
     <div class="page-header">
       <h2>⚡ Add Points</h2>
       <p>Select a crew member to log their flight hours</p>
     </div>
+    <!-- Auth gate banner — shown when user is a guest -->
+    <div id="members-auth-gate" class="auth-gate-banner" style="display:none">
+      🔒 You are viewing as a guest. <a href="#" onclick="showLoginOverlay()">Sign in</a> to add points.
+    </div>
     <div class="members-grid" id="members-grid"></div>
-
-    <div class="section-title" style="margin-top:48px">⭐ Individual Award Tiers</div>
-    <p class="section-sub">Each crew member earns these based on their own points</p>
-    <div class="awards-full" id="awards-full"></div>
   </div>
 
   <!-- ═══════════════ MEMBER PROFILE PAGE ═══════════════ -->
+  <!--
+    PROFILE EDITING (name, bio, icon) is intentionally NOT editable via the website.
+    To update your profile, submit a Pull Request on GitHub editing data.js.
+    See README.md → "Editing Your Profile" for full instructions.
+  -->
   <div class="page" id="page-profile">
     <button class="back-btn" onclick="showPage('home')">← Back to Home</button>
     <div class="profile-page-header">
-      <!-- 🖼️ IMAGE RENDER POINT: renderMemberIcon() swaps emoji for <img> if
-           the icon field is a file path like "images/alice.jpg". See data.js. -->
+      <!--
+        🖼️ IMAGE RENDER POINT
+        To change this member's photo, update the "icon" field in data.js.
+        See README.md for instructions on submitting a PR.
+      -->
       <div id="pp-icon" class="pp-icon"></div>
       <div class="pp-header-info">
         <div class="pp-name" id="pp-name"></div>
         <div class="pp-pts"  id="pp-pts"></div>
         <div class="pp-rank" id="pp-rank"></div>
       </div>
-      <button class="custom-add-btn pp-edit-btn" onclick="openAddPointsForProfile()">⚡ Add Points</button>
+      <!-- Only shown when the logged-in user is an approved admin -->
+      <button class="custom-add-btn pp-edit-btn" id="pp-add-pts-btn"
+              onclick="openAddPointsForProfile()" style="display:none">⚡ Add Points</button>
     </div>
 
     <div class="profile-sections">
-      <!-- Bio -->
+      <!-- Bio — read-only display; edit via PR on data.js -->
       <div class="profile-section-card">
-        <div class="modal-section-label">📝 Bio / Description</div>
-        <div class="bio-edit-wrap">
-          <textarea id="pp-bio-input" placeholder="Write a short bio — role, interests, favourite drone..." rows="4"></textarea>
-          <button class="custom-add-btn" onclick="saveProfileBio()">Save Bio</button>
-        </div>
+        <div class="modal-section-label">📝 Bio</div>
+        <!--
+          To update this bio, edit the "bio" field for this member in data.js
+          and open a Pull Request. See README.md for details.
+        -->
         <div id="pp-bio-display" class="profile-bio"></div>
-      </div>
-
-      <!-- Edit name -->
-      <div class="profile-section-card">
-        <div class="modal-section-label">✏️ Edit Name</div>
-        <div class="custom-row">
-          <input type="text" id="pp-name-input" placeholder="Change crew member name..." />
-          <button class="custom-add-btn" onclick="saveProfileName()">Save</button>
-        </div>
       </div>
 
       <!-- Personal awards -->
@@ -129,9 +165,14 @@
       <h2>🏆 Awards Bay</h2>
       <p>Earn points, unlock rewards, reach the stars</p>
     </div>
+
     <div class="section-title">🌍 Group Mission Milestones</div>
     <p class="section-sub">Unlock these rewards together as a club</p>
     <div class="awards-full" id="group-milestones-full"></div>
+
+    <div class="section-title" style="margin-top:48px">⭐ Individual Award Tiers</div>
+    <p class="section-sub">Each crew member earns these based on their own points</p>
+    <div class="awards-full" id="awards-full"></div>
   </div>
 
   <!-- ═══════════════ POINT-ADD MODAL ═══════════════ -->
@@ -178,42 +219,12 @@
     </div>
   </div>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK (compat v10) -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
   <script src="firebase-config.js"></script>
   <script src="data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
-  <!-- Stars background -->
-  <div class="stars" id="stars"></div>
-
-  <!-- NAV -->
-  <nav class="navbar">
-    <div class="nav-brand">
-      <span class="nav-icon">🛸</span>
-      <span class="nav-title">SOMARS</span>
-      <span class="nav-sub">Points Command</span>
-    </div>
-    <div class="nav-links">
-      <button class="nav-btn active" onclick="showPage('home')" id="nav-home">🏠 Home Base</button>
-      <button class="nav-btn" onclick="showPage('members')" id="nav-members">👨‍🚀 Crew Roster</button>
-      <button class="nav-btn" onclick="showPage('awards')" id="nav-awards">🏆 Awards Bay</button>
-    </div>
-  </nav>
-
-  <!-- HOME PAGE -->
-  <div class="page active" id="page-home">
-    <div class="hero">
-      <div class="drone-anim">🚁</div>
-      <h1 class="hero-title">SOMARS MISSION CONTROL</h1>
-      <p class="hero-sub">Aerospace & Drone Club · Points Command Center</p>
-    </div>
-
-    <div class="stats-grid">
-      <div class="stat-card glow-blue">
-        <div class="stat-icon">🌍</div>
-        <div class="stat-label">Total Points In Orbit</div>
-        <div class="stat-value" id="total-points">0</div>
-      </div>

@@ -1,13 +1,169 @@
 // ─── SOMARS Points Tracker · app.js ──────────────────────────────────────────
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let members         = [];
-let selectedMemberId = null;  // active in the add-points modal
-let profilePageId    = null;  // active on the profile page
+let members          = [];
+let selectedMemberId = null;   // member currently open in the add-points modal
+let profilePageId    = null;   // member whose profile page is displayed
+let currentUser      = null;   // Firebase Auth user object (null = guest)
+let isApproved       = false;  // true only if user email is in Firestore "admins" collection
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init() {
   generateStars();
+
+  // ── Auth state listener ───────────────────────────────────────────────────
+  // Firebase Auth automatically restores the session from the previous visit.
+  // onAuthStateChanged fires once on page load (user or null) and again on
+  // every sign-in / sign-out.
+  auth.onAuthStateChanged(async user => {
+    if (user) {
+      // A user is signed in — check the Firestore "admins" collection to see
+      // if this email is on the approved list before granting write access.
+      await resolveApproval(user);
+    } else {
+      // No session — show login overlay (first-time or after sign-out).
+      // If the overlay is already dismissed (guest mode) don't re-show it.
+      if (!document.getElementById("login-overlay").dataset.dismissed) {
+        showLoginOverlay();
+      }
+      currentUser = null;
+      isApproved  = false;
+      renderAuthUI();
+    }
+    startFirestoreListener();
+  });
+}
+
+// ── Check "admins" collection ─────────────────────────────────────────────────
+// The "admins" Firestore collection holds one document per approved user.
+// Document ID = the user's email address (lowercase).
+// If the document exists, the user is approved to add points.
+//
+// HOW TO ADD AN APPROVED USER:
+//   1. Have them create a Firebase Auth account (Firebase Console → Authentication).
+//   2. In Firestore → Collection "admins" → Add document:
+//        Document ID:  their-email@example.com
+//        Field:        email  (string)  their-email@example.com
+//   That's it — they can now sign in and edit points.
+async function resolveApproval(user) {
+  currentUser = user;
+  try {
+    const doc = await db.collection("admins").doc(user.email.toLowerCase()).get();
+    isApproved = doc.exists;
+  } catch (err) {
+    console.error("Could not verify approval:", err);
+    isApproved = false;
+  }
+  // Hide login overlay since the user is authenticated
+  hideLoginOverlay();
+  renderAuthUI();
+}
+
+// ── Auth UI helpers ───────────────────────────────────────────────────────────
+function renderAuthUI() {
+  const pill    = document.getElementById("auth-pill");
+  const gate    = document.getElementById("members-auth-gate");
+  const addBtn  = document.getElementById("pp-add-pts-btn");
+
+  if (currentUser && isApproved) {
+    pill.innerHTML = `
+      <span class="auth-user">✅ ${escHtml(currentUser.email)}</span>
+      <button class="auth-signout-btn" onclick="doSignOut()">Sign out</button>`;
+    if (gate)   gate.style.display   = "none";
+    if (addBtn) addBtn.style.display = "inline-flex";
+  } else if (currentUser && !isApproved) {
+    // Signed in but NOT on the approved list
+    pill.innerHTML = `
+      <span class="auth-user auth-pending">⚠️ ${escHtml(currentUser.email)} — not approved</span>
+      <button class="auth-signout-btn" onclick="doSignOut()">Sign out</button>`;
+    if (gate)   gate.style.display   = "flex";
+    if (addBtn) addBtn.style.display = "none";
+  } else {
+    // Guest
+    pill.innerHTML = `
+      <span class="auth-guest">👁 Guest (read-only)</span>
+      <button class="auth-signin-btn" onclick="showLoginOverlay()">Sign in</button>`;
+    if (gate)   gate.style.display   = "flex";
+    if (addBtn) addBtn.style.display = "none";
+  }
+
+  // Re-render grids so lock icons appear/disappear correctly
+  renderMembersGrid();
+  // Refresh profile page add-points button if open
+  if (profilePageId !== null) {
+    const btn = document.getElementById("pp-add-pts-btn");
+    if (btn) btn.style.display = isApproved ? "inline-flex" : "none";
+  }
+}
+
+// ── Login overlay ─────────────────────────────────────────────────────────────
+function showLoginOverlay() {
+  const overlay = document.getElementById("login-overlay");
+  overlay.style.display = "flex";
+  delete overlay.dataset.dismissed;
+}
+
+function hideLoginOverlay() {
+  const overlay = document.getElementById("login-overlay");
+  overlay.style.display = "none";
+  overlay.dataset.dismissed = "1";
+}
+
+function continueAsGuest() {
+  hideLoginOverlay();
+  currentUser = null;
+  isApproved  = false;
+  renderAuthUI();
+}
+
+// ── Sign in ───────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email    = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+  const errEl    = document.getElementById("login-error");
+
+  if (!email || !password) {
+    showLoginError("Please enter your email and password.");
+    return;
+  }
+
+  try {
+    errEl.style.display = "none";
+    await auth.signInWithEmailAndPassword(email, password);
+    // onAuthStateChanged will fire and call resolveApproval()
+  } catch (err) {
+    const msg = {
+      "auth/user-not-found":    "No account found with that email.",
+      "auth/wrong-password":    "Incorrect password.",
+      "auth/invalid-email":     "Invalid email address.",
+      "auth/too-many-requests": "Too many attempts — try again later.",
+    }[err.code] || err.message;
+    showLoginError(msg);
+  }
+}
+
+// Allow pressing Enter in the password field to submit
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("login-password")
+    .addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+  document.getElementById("login-email")
+    .addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+});
+
+function showLoginError(msg) {
+  const el = document.getElementById("login-error");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+
+// ── Sign out ──────────────────────────────────────────────────────────────────
+async function doSignOut() {
+  await auth.signOut();
+  // onAuthStateChanged fires → shows login overlay
+}
+
+// ── Firestore real-time listener ──────────────────────────────────────────────
+function startFirestoreListener() {
   showConnectionStatus("connecting");
 
   db.collection("members")
@@ -17,12 +173,14 @@ function init() {
         seedDatabase();
       } else {
         members = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-        members.forEach(m => { if (m.bio === undefined) m.bio = ""; });
+        members.forEach(m => {
+          if (m.bio   === undefined) m.bio   = "";
+          if (m.icon  === undefined) m.icon  = "🚀";
+          if (m.name  === undefined) m.name  = `Crew Member ${m.id}`;
+        });
         showConnectionStatus("live");
         renderAll();
-        // If the profile page is open, keep it fresh
         if (profilePageId !== null) renderProfilePage(profilePageId);
-        // If the points modal is open, refresh its pts display
         if (selectedMemberId !== null) {
           const m = members.find(x => x.id === selectedMemberId);
           if (m) document.getElementById("modal-member-pts").textContent =
@@ -64,10 +222,10 @@ function showConnectionStatus(state) {
     document.body.appendChild(badge);
   }
   const S = {
-    connecting: { text:"📡 Connecting...",   bg:"rgba(255,180,0,.15)",  border:"#ffb400", color:"#ffb400" },
-    seeding:    { text:"🌱 Setting up DB...",bg:"rgba(0,212,255,.15)",  border:"#00d4ff", color:"#00d4ff" },
-    live:       { text:"🟢 Live — synced",   bg:"rgba(0,232,120,.15)",  border:"#00e878", color:"#00e878" },
-    error:      { text:"⚠️ Offline (local)", bg:"rgba(255,80,80,.15)",  border:"#ff5050", color:"#ff5050" },
+    connecting: { text:"📡 Connecting...",    bg:"rgba(255,180,0,.15)",  border:"#ffb400", color:"#ffb400" },
+    seeding:    { text:"🌱 Setting up DB...", bg:"rgba(0,212,255,.15)",  border:"#00d4ff", color:"#00d4ff" },
+    live:       { text:"🟢 Live — synced",    bg:"rgba(0,232,120,.15)",  border:"#00e878", color:"#00e878" },
+    error:      { text:"⚠️ Offline (local)",  bg:"rgba(255,80,80,.15)",  border:"#ff5050", color:"#ff5050" },
   }[state];
   badge.textContent = S.text;
   badge.style.background  = S.bg;
@@ -98,8 +256,18 @@ function generateStars() {
 }
 
 // ── 🖼️ IMAGE RENDER POINT ────────────────────────────────────────────────────
-// Change a member's "icon" in data.js to e.g. "images/alice.jpg" and place
-// the file in an images/ folder next to index.html to use a photo instead.
+// Each member has an "icon" field in data.js. It can be:
+//   • An emoji string  →  rendered as a <span>
+//   • A file path      →  rendered as an <img> (e.g. "images/alice.jpg")
+//
+// To use a photo:
+//   1. Add the image file to the images/ folder next to index.html
+//   2. Set  icon: "images/yourphoto.jpg"  in that member's entry in data.js
+//   3. Open a Pull Request — see README.md for full steps.
+//
+// The icon is rendered the same way EVERYWHERE the member appears:
+// leaderboard, member grid, profile page, add-points modal header.
+// Updating data.js once updates all instances automatically.
 function renderMemberIcon(icon, cssClass = "") {
   const isImg = icon && (icon.startsWith("images/") || /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(icon));
   return isImg
@@ -112,7 +280,7 @@ function showPage(name) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
   document.getElementById("page-" + name).classList.add("active");
-  // profile page has no nav button — highlight home when on it
+  // The profile page has no dedicated nav button — keep "Home Base" highlighted
   const navId = "nav-" + (name === "profile" ? "home" : name);
   const navEl = document.getElementById(navId);
   if (navEl) navEl.classList.add("active");
@@ -140,7 +308,7 @@ function renderHomeStats() {
   document.getElementById("next-award-pts").textContent  = next ? next.points.toLocaleString() : "ALL DONE 🎉";
 }
 
-// ── Group milestone nodes (home page inline) ──────────────────────────────────
+// ── Group milestone nodes (home page) ────────────────────────────────────────
 function renderMilestoneNodes() {
   const el = document.getElementById("group-milestone-nodes");
   if (!el) return;
@@ -170,7 +338,6 @@ function renderLeaderboard() {
       <div class="lb-row">
         <span class="lb-rank">${medal}</span>
         <span class="lb-icon">${renderMemberIcon(m.icon)}</span>
-        <!-- Clicking the name navigates to the full profile page -->
         <span class="lb-name lb-name-link" onclick="openProfilePage(${m.id})">${escHtml(m.name)}</span>
         <div class="lb-bar-wrap"><div class="lb-bar" style="width:${bar}%"></div></div>
         <span class="lb-pts">${m.points.toLocaleString()} pts</span>
@@ -178,26 +345,32 @@ function renderLeaderboard() {
   }).join("");
 }
 
-// ── Add-Points members grid ───────────────────────────────────────────────────
+// ── Add-Points members grid — sorted by points (highest first) ────────────────
 function renderMembersGrid() {
   const el = document.getElementById("members-grid");
   if (!el) return;
-  el.innerHTML = members.map(m => {
+
+  // Sort descending by points so highest earners appear first
+  const sorted = [...members].sort((a, b) => b.points - a.points);
+
+  el.innerHTML = sorted.map(m => {
     const award = [...AWARDS].reverse().find(a => m.points >= a.points);
+    const canEdit = isApproved;
     return `
-      <div class="member-card" onclick="openMemberModal(${m.id})">
+      <div class="member-card ${canEdit ? "" : "member-card-locked"}"
+           onclick="${canEdit ? `openMemberModal(${m.id})` : "showLoginOverlay()"}">
         <div class="member-icon">${renderMemberIcon(m.icon, "member-icon-inner")}</div>
         <div class="member-name">${escHtml(m.name)}</div>
         <div class="member-pts">${m.points.toLocaleString()} <span>pts</span></div>
         ${award
           ? `<div class="member-rank" style="color:${award.color}">${renderMemberIcon(award.icon)} ${award.title}</div>`
           : '<div class="member-rank">🚦 No rank yet</div>'}
-        <div class="member-edit-hint">Click to add points</div>
+        <div class="member-edit-hint">${canEdit ? "Click to add points" : "🔒 Sign in to add points"}</div>
       </div>`;
   }).join("");
 }
 
-// ── Individual awards (Add Points tab) ───────────────────────────────────────
+// ── Individual awards (Awards Bay tab) ───────────────────────────────────────
 function renderAwardsFull() {
   const el = document.getElementById("awards-full");
   if (!el) return;
@@ -222,7 +395,7 @@ function renderAwardsFull() {
   }).join("");
 }
 
-// ── Group milestones (Awards tab) ─────────────────────────────────────────────
+// ── Group milestones (Awards Bay tab) ─────────────────────────────────────────
 function renderGroupMilestonesFull() {
   const el = document.getElementById("group-milestones-full");
   if (!el) return;
@@ -247,7 +420,7 @@ function renderGroupMilestonesFull() {
   }).join("");
 }
 
-// ── Profile PAGE (not modal) ──────────────────────────────────────────────────
+// ── Profile PAGE ──────────────────────────────────────────────────────────────
 function openProfilePage(id) {
   profilePageId = id;
   renderProfilePage(id);
@@ -258,7 +431,11 @@ function renderProfilePage(id) {
   const m = members.find(x => x.id === id);
   if (!m) return;
 
-  // Header
+  // ── Header ──────────────────────────────────────────────────────────────
+  // renderMemberIcon() uses the same "icon" field that is set in data.js.
+  // If that field is changed to an image path (e.g. "images/alice.jpg"),
+  // it automatically renders as <img> here AND everywhere else the member
+  // appears (leaderboard, member grid, points modal header).
   document.getElementById("pp-icon").innerHTML = renderMemberIcon(m.icon, "pp-icon-inner");
   document.getElementById("pp-name").textContent = m.name;
   document.getElementById("pp-pts").textContent  = m.points.toLocaleString() + " pts";
@@ -268,16 +445,17 @@ function renderProfilePage(id) {
     ? `<span style="color:${award.color}">${renderMemberIcon(award.icon)} ${award.title}</span>`
     : '<span style="color:#7a9ab8">🚦 No rank yet</span>';
 
-  // Bio — pre-populate textarea with THIS member's bio only
-  const bioInput = document.getElementById("pp-bio-input");
-  bioInput.value = m.bio || "";                    // ← FIX: always set per-member value
-  const bioDisplay = document.getElementById("pp-bio-display");
-  bioDisplay.textContent = m.bio || "No bio yet — add one above!";
+  // ── Bio (read-only) ──────────────────────────────────────────────────────
+  // To update a bio, edit the "bio" field in data.js and submit a PR.
+  // See README.md → "Editing Your Profile".
+  document.getElementById("pp-bio-display").textContent =
+    m.bio || "No bio yet. Submit a PR on GitHub to add one — see README.md.";
 
-  // Name input
-  document.getElementById("pp-name-input").value = m.name;
+  // ── "Add Points" button visibility ──────────────────────────────────────
+  const addBtn = document.getElementById("pp-add-pts-btn");
+  if (addBtn) addBtn.style.display = isApproved ? "inline-flex" : "none";
 
-  // Personal awards progress
+  // ── Personal awards progress ─────────────────────────────────────────────
   const awardsEl = document.getElementById("pp-awards");
   awardsEl.innerHTML = AWARDS.map(a => {
     const done = m.points >= a.points;
@@ -300,48 +478,22 @@ function renderProfilePage(id) {
   }).join("");
 }
 
-// Opens the add-points modal pre-selected for whoever's profile page is open
+// Opens the add-points modal for the currently-displayed profile page member.
+// Only reachable when isApproved = true (button is hidden otherwise).
 function openAddPointsForProfile() {
+  if (!isApproved) return;
   if (profilePageId === null) return;
   openMemberModal(profilePageId);
 }
 
-// Save bio from the profile page
-async function saveProfileBio() {
-  if (profilePageId === null) return;
-  const val = document.getElementById("pp-bio-input").value.trim();
-  const m = members.find(x => x.id === profilePageId);
-  m.bio = val;
-  document.getElementById("pp-bio-display").textContent = val || "No bio yet — add one above!";
-  try {
-    await db.collection("members").doc(String(profilePageId)).update({ bio: val });
-  } catch (err) {
-    console.error("Failed to save bio:", err);
-    showConnectionStatus("error");
-  }
-}
-
-// Save name from the profile page
-async function saveProfileName() {
-  if (profilePageId === null) return;
-  const val = document.getElementById("pp-name-input").value.trim();
-  if (!val) return;
-  const m = members.find(x => x.id === profilePageId);
-  m.name = val;
-  document.getElementById("pp-name").textContent = val;
-  try {
-    await db.collection("members").doc(String(profilePageId)).update({ name: val });
-  } catch (err) {
-    console.error("Failed to save name:", err);
-    showConnectionStatus("error");
-  }
-}
-
 // ── Add-Points modal ──────────────────────────────────────────────────────────
 function openMemberModal(id) {
+  if (!isApproved) { showLoginOverlay(); return; }
   selectedMemberId = id;
   const m = members.find(x => x.id === id);
-  document.getElementById("modal-member-icon").textContent = m.icon;
+  // renderMemberIcon — icon field from data.js; images/ path renders as <img>
+  const iconHTML = renderMemberIcon(m.icon);
+  document.getElementById("modal-member-icon").innerHTML = iconHTML;
   document.getElementById("modal-member-name").textContent = m.name;
   document.getElementById("modal-member-pts").textContent  = m.points.toLocaleString() + " pts";
   document.getElementById("custom-input").value = "";
@@ -359,6 +511,7 @@ function closeModalDirect() {
 
 // ── Add / deduct points → Firestore ──────────────────────────────────────────
 async function addPoints(amount) {
+  if (!isApproved) return;
   if (selectedMemberId === null) return;
   const m = members.find(x => x.id === selectedMemberId);
   const newPts = Math.max(0, m.points + amount);
@@ -375,6 +528,7 @@ async function addPoints(amount) {
 }
 
 function addCustomPoints() {
+  if (!isApproved) return;
   const val = parseInt(document.getElementById("custom-input").value, 10);
   if (isNaN(val) || val === 0) return;
   addPoints(val);

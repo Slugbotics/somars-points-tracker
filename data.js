@@ -1,19 +1,55 @@
 // ─── SOMARS Points Tracker · data.js ─────────────────────────────────────────
-
-// ─── Default Member List ──────────────────────────────────────────────────────
-// Each member has: id, name, points, icon (emoji or image path), bio
 //
-// 🖼️  TO USE A LOCAL IMAGE INSTEAD OF AN EMOJI:
-//     1. Put your image file in an "images/" folder next to index.html
-//        e.g.  images/member1.jpg
-//     2. Change the "icon" value to the relative path:
-//        icon: "images/member1.jpg"
-//     The code in app.js checks whether the icon starts with "images/" (or
-//     ends in .jpg/.png/.webp/.gif) and renders it as <img> instead of text.
-//     Look for the comment "// 🖼️ IMAGE RENDER POINT" in app.js to see exactly
-//     where the swap happens.
+// ════════════════════════════════════════════════════════════════════════════
+//  EDITING YOUR PROFILE
+// ════════════════════════════════════════════════════════════════════════════
+//
+//  Profile information (name, bio, icon/photo) is managed here in data.js
+//  and deployed via Git — NOT editable through the website UI.
+//
+//  To update YOUR entry:
+//    1. Fork the repository on GitHub (or clone it if you already have access).
+//    2. Edit this file — find your entry in DEFAULT_MEMBERS below.
+//    3. Change any of: name, bio, icon (see image instructions below).
+//    4. Open a Pull Request targeting the "main" branch.
+//    5. A SOMARS admin will review and merge it.
+//
+//  See README.md → "Editing Your Profile" for the full step-by-step guide.
+//
+// ════════════════════════════════════════════════════════════════════════════
+//  CHANGING YOUR PROFILE PICTURE  🖼️
+// ════════════════════════════════════════════════════════════════════════════
+//
+//  Option A — Emoji (default):
+//    icon: "🚀"
+//    Just type any emoji you like.
+//
+//  Option B — Local image file:
+//    1. Add your photo to the  images/  folder (create it if it doesn't exist).
+//       Recommended: square crop, 200×200 px minimum, JPG or PNG.
+//       File naming convention:  images/firstname-lastname.jpg
+//    2. Set:  icon: "images/firstname-lastname.jpg"
+//    3. Include the image file in your Pull Request.
+//
+//  Your icon is rendered automatically in ALL locations:
+//    • Home leaderboard
+//    • Add Points grid
+//    • Profile page header
+//    • Add Points modal header
+//  Changing it once here updates every instance.
+//
+// ════════════════════════════════════════════════════════════════════════════
 
 const DEFAULT_MEMBERS = [
+  // ── Edit your entry below ─────────────────────────────────────────────────
+  // Fields:
+  //   id     — do NOT change (used as the Firestore document key)
+  //   name   — your display name
+  //   points — always 0 here; live values are stored in Firestore
+  //   icon   — emoji OR image path (see instructions above)
+  //   bio    — one or two sentences about you; keep it short
+  // ─────────────────────────────────────────────────────────────────────────
+
   { id: 1,  name: "Crew Member 1",  points: 0, icon: "🚀", bio: "" },
   { id: 2,  name: "Crew Member 2",  points: 0, icon: "🛸", bio: "" },
   { id: 3,  name: "Crew Member 3",  points: 0, icon: "✈️", bio: "" },
@@ -36,7 +72,6 @@ const DEFAULT_MEMBERS = [
 //
 // 🖼️  TO USE A LOCAL IMAGE for an award icon:
 //     Change the "icon" field to a path like "images/shirt-award.png"
-//     Look for "// 🖼️ IMAGE RENDER POINT" in app.js for the render logic.
 
 const AWARDS = [
   {
@@ -123,7 +158,6 @@ const AWARDS = [
 
 // ─── Group Milestone Rewards ──────────────────────────────────────────────────
 // These are based on the COMBINED total points of ALL members together.
-// Edit the points values and descriptions below to change the group rewards.
 //
 // 🖼️  TO USE A LOCAL IMAGE for a group reward icon:
 //     Change "icon" to a path like "images/ice-cream.png"

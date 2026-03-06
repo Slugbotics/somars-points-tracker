@@ -138,6 +138,13 @@ body {
   animation: hover-drone 3s ease-in-out infinite;
 }
 
+.hero-drone-img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 18px rgba(0, 212, 255, 0.5));
+}
+
 @keyframes hover-drone {
   0%, 100% { transform: translateY(0) rotate(-3deg); }
   50%       { transform: translateY(-14px) rotate(3deg); }

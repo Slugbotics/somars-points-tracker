@@ -11,34 +11,25 @@
   <!-- Stars background -->
   <div class="stars" id="stars"></div>
 
-  <!-- ═══════════════ LOGIN OVERLAY ═══════════════ -->
-  <!-- Shown when no user is signed in. Hides the whole app. -->
-  <div id="login-overlay" class="login-overlay">
-    <div class="login-box">
-      <div class="login-logo">🛸</div>
-      <h2 class="login-title">SOMARS Mission Control</h2>
-      <p class="login-sub">Sign in to add points · View-only if not signed in</p>
-
-      <div id="login-error" class="login-error" style="display:none"></div>
-
-      <div class="login-field">
-        <label>Email</label>
-        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email"/>
+  <!-- ═══════════════ ADMIN PASSWORD MODAL ═══════════════ -->
+  <!-- Clicking "Edit Points" in the nav opens this. Password is set in data.js (ADMIN_PASSWORD). -->
+  <div id="admin-modal" class="modal-overlay" onclick="closeAdminModal(event)">
+    <div class="modal-box admin-modal-box">
+      <div class="modal-header">
+        <span style="font-size:1.8rem">🔐</span>
+        <div>
+          <div class="modal-name">Admin Access</div>
+          <div style="font-size:0.8rem;color:var(--text-muted)">Enter the admin password to edit points</div>
+        </div>
+        <button class="modal-close" onclick="closeAdminModalDirect()">✕</button>
       </div>
-      <div class="login-field">
-        <label>Password</label>
-        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/>
+      <div id="admin-error" class="login-error" style="display:none"></div>
+      <div class="custom-row" style="margin-top:8px">
+        <input type="password" id="admin-password-input" placeholder="Password..." autocomplete="off"/>
+        <button class="custom-add-btn" onclick="submitAdminPassword()">Unlock</button>
       </div>
-
-      <button class="login-btn" onclick="doLogin()">🚀 Sign In</button>
-      <button class="login-guest-btn" onclick="continueAsGuest()">👁 View as Guest (read-only)</button>
-
-      <p class="login-note">
-        Don't have an account? Ask a SOMARS admin to add your email to the approved list,
-        then create an account in the
-        <a href="https://console.firebase.google.com/project/somars-points-tracker/authentication/users" target="_blank">
-          Firebase Console
-        </a>.
+      <p style="font-size:0.75rem;color:var(--text-muted);margin-top:14px;line-height:1.5">
+        Password is set in <code>data.js</code> → <code>ADMIN_PASSWORD</code>.
       </p>
     </div>
   </div>
@@ -51,12 +42,11 @@
       <span class="nav-sub">Points Command</span>
     </div>
     <div class="nav-links">
-      <button class="nav-btn active" onclick="showPage('home')"    id="nav-home">🏠 Home Base</button>
-      <button class="nav-btn"        onclick="showPage('members')" id="nav-members">⚡ Add Points</button>
-      <button class="nav-btn"        onclick="showPage('awards')"  id="nav-awards">🏆 Awards Bay</button>
+      <button class="nav-btn active" onclick="showPage('home')"   id="nav-home">🏠 Home Base</button>
+      <button class="nav-btn"        onclick="showPage('awards')" id="nav-awards">🏆 Awards Bay</button>
     </div>
-    <!-- Auth status pill — injected here by app.js -->
-    <div id="auth-pill" class="auth-pill"></div>
+    <!-- Admin button — always visible; clicking it either opens the password modal or goes straight to Edit Points if already unlocked -->
+    <button class="admin-nav-btn" id="admin-nav-btn" onclick="handleAdminNavClick()">🔒 Edit Points</button>
   </nav>
 
   <!-- ═══════════════ HOME PAGE ═══════════════ -->
@@ -101,20 +91,6 @@
     <div class="leaderboard" id="leaderboard"></div>
   </div>
 
-  <!-- ═══════════════ ADD POINTS PAGE ═══════════════ -->
-  <!-- Grid is sorted by points (highest first) — see renderMembersGrid() in app.js -->
-  <div class="page" id="page-members">
-    <div class="page-header">
-      <h2>⚡ Add Points</h2>
-      <p>Select a crew member to log their flight hours</p>
-    </div>
-    <!-- Auth gate banner — shown when user is a guest -->
-    <div id="members-auth-gate" class="auth-gate-banner" style="display:none">
-      🔒 You are viewing as a guest. <a href="#" onclick="showLoginOverlay()">Sign in</a> to add points.
-    </div>
-    <div class="members-grid" id="members-grid"></div>
-  </div>
-
   <!-- ═══════════════ MEMBER PROFILE PAGE ═══════════════ -->
   <!--
     PROFILE EDITING (name, bio, icon) is intentionally NOT editable via the website.
@@ -135,9 +111,9 @@
         <div class="pp-pts"  id="pp-pts"></div>
         <div class="pp-rank" id="pp-rank"></div>
       </div>
-      <!-- Only shown when the logged-in user is an approved admin -->
+      <!-- Shown when admin is unlocked -->
       <button class="custom-add-btn pp-edit-btn" id="pp-add-pts-btn"
-              onclick="openAddPointsForProfile()" style="display:none">⚡ Add Points</button>
+              onclick="openAddPointsForProfile()">⚡ Add Points</button>
     </div>
 
     <div class="profile-sections">
@@ -222,7 +198,6 @@
   <!-- Firebase SDK (compat v10) -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
   <script src="firebase-config.js"></script>
   <script src="data.js"></script>
   <script src="app.js"></script>

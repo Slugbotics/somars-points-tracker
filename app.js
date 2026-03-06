@@ -4,162 +4,12 @@
 let members          = [];
 let selectedMemberId = null;   // member currently open in the add-points modal
 let profilePageId    = null;   // member whose profile page is displayed
-let currentUser      = null;   // Firebase Auth user object (null = guest)
-let isApproved       = false;  // true only if user email is in Firestore "admins" collection
+let isUnlocked       = false;  // true after the admin enters the correct password
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init() {
   generateStars();
-
-  // ── Auth state listener ───────────────────────────────────────────────────
-  // Firebase Auth automatically restores the session from the previous visit.
-  // onAuthStateChanged fires once on page load (user or null) and again on
-  // every sign-in / sign-out.
-  auth.onAuthStateChanged(async user => {
-    if (user) {
-      // A user is signed in — check the Firestore "admins" collection to see
-      // if this email is on the approved list before granting write access.
-      await resolveApproval(user);
-    } else {
-      // No session — show login overlay (first-time or after sign-out).
-      // If the overlay is already dismissed (guest mode) don't re-show it.
-      if (!document.getElementById("login-overlay").dataset.dismissed) {
-        showLoginOverlay();
-      }
-      currentUser = null;
-      isApproved  = false;
-      renderAuthUI();
-    }
-    startFirestoreListener();
-  });
-}
-
-// ── Check "admins" collection ─────────────────────────────────────────────────
-// The "admins" Firestore collection holds one document per approved user.
-// Document ID = the user's email address (lowercase).
-// If the document exists, the user is approved to add points.
-//
-// HOW TO ADD AN APPROVED USER:
-//   1. Have them create a Firebase Auth account (Firebase Console → Authentication).
-//   2. In Firestore → Collection "admins" → Add document:
-//        Document ID:  their-email@example.com
-//        Field:        email  (string)  their-email@example.com
-//   That's it — they can now sign in and edit points.
-async function resolveApproval(user) {
-  currentUser = user;
-  try {
-    const doc = await db.collection("admins").doc(user.email.toLowerCase()).get();
-    isApproved = doc.exists;
-  } catch (err) {
-    console.error("Could not verify approval:", err);
-    isApproved = false;
-  }
-  // Hide login overlay since the user is authenticated
-  hideLoginOverlay();
-  renderAuthUI();
-}
-
-// ── Auth UI helpers ───────────────────────────────────────────────────────────
-function renderAuthUI() {
-  const pill    = document.getElementById("auth-pill");
-  const gate    = document.getElementById("members-auth-gate");
-  const addBtn  = document.getElementById("pp-add-pts-btn");
-
-  if (currentUser && isApproved) {
-    pill.innerHTML = `
-      <span class="auth-user">✅ ${escHtml(currentUser.email)}</span>
-      <button class="auth-signout-btn" onclick="doSignOut()">Sign out</button>`;
-    if (gate)   gate.style.display   = "none";
-    if (addBtn) addBtn.style.display = "inline-flex";
-  } else if (currentUser && !isApproved) {
-    // Signed in but NOT on the approved list
-    pill.innerHTML = `
-      <span class="auth-user auth-pending">⚠️ ${escHtml(currentUser.email)} — not approved</span>
-      <button class="auth-signout-btn" onclick="doSignOut()">Sign out</button>`;
-    if (gate)   gate.style.display   = "flex";
-    if (addBtn) addBtn.style.display = "none";
-  } else {
-    // Guest
-    pill.innerHTML = `
-      <span class="auth-guest">👁 Guest (read-only)</span>
-      <button class="auth-signin-btn" onclick="showLoginOverlay()">Sign in</button>`;
-    if (gate)   gate.style.display   = "flex";
-    if (addBtn) addBtn.style.display = "none";
-  }
-
-  // Re-render grids so lock icons appear/disappear correctly
-  renderMembersGrid();
-  // Refresh profile page add-points button if open
-  if (profilePageId !== null) {
-    const btn = document.getElementById("pp-add-pts-btn");
-    if (btn) btn.style.display = isApproved ? "inline-flex" : "none";
-  }
-}
-
-// ── Login overlay ─────────────────────────────────────────────────────────────
-function showLoginOverlay() {
-  const overlay = document.getElementById("login-overlay");
-  overlay.style.display = "flex";
-  delete overlay.dataset.dismissed;
-}
-
-function hideLoginOverlay() {
-  const overlay = document.getElementById("login-overlay");
-  overlay.style.display = "none";
-  overlay.dataset.dismissed = "1";
-}
-
-function continueAsGuest() {
-  hideLoginOverlay();
-  currentUser = null;
-  isApproved  = false;
-  renderAuthUI();
-}
-
-// ── Sign in ───────────────────────────────────────────────────────────────────
-async function doLogin() {
-  const email    = document.getElementById("login-email").value.trim();
-  const password = document.getElementById("login-password").value;
-  const errEl    = document.getElementById("login-error");
-
-  if (!email || !password) {
-    showLoginError("Please enter your email and password.");
-    return;
-  }
-
-  try {
-    errEl.style.display = "none";
-    await auth.signInWithEmailAndPassword(email, password);
-    // onAuthStateChanged will fire and call resolveApproval()
-  } catch (err) {
-    const msg = {
-      "auth/user-not-found":    "No account found with that email.",
-      "auth/wrong-password":    "Incorrect password.",
-      "auth/invalid-email":     "Invalid email address.",
-      "auth/too-many-requests": "Too many attempts — try again later.",
-    }[err.code] || err.message;
-    showLoginError(msg);
-  }
-}
-
-// Allow pressing Enter in the password field to submit
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("login-password")
-    .addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
-  document.getElementById("login-email")
-    .addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
-});
-
-function showLoginError(msg) {
-  const el = document.getElementById("login-error");
-  el.textContent = msg;
-  el.style.display = "block";
-}
-
-// ── Sign out ──────────────────────────────────────────────────────────────────
-async function doSignOut() {
-  await auth.signOut();
-  // onAuthStateChanged fires → shows login overlay
+  startFirestoreListener();
 }
 
 // ── Firestore real-time listener ──────────────────────────────────────────────
@@ -255,7 +105,78 @@ function generateStars() {
   }
 }
 
-// ── 🖼️ IMAGE RENDER POINT ────────────────────────────────────────────────────
+// ── Admin password modal ──────────────────────────────────────────────────────
+// The password is stored in data.js as ADMIN_PASSWORD.
+// Edit that value and push to GitHub to change the password.
+
+function handleAdminNavClick() {
+  if (isUnlocked) {
+    lockAdmin();
+  } else {
+    openAdminModal();
+  }
+}
+
+function openAdminModal() {
+  const modal = document.getElementById("admin-modal");
+  document.getElementById("admin-password-input").value = "";
+  document.getElementById("admin-error").style.display = "none";
+  modal.classList.add("open");
+  setTimeout(() => document.getElementById("admin-password-input").focus(), 80);
+}
+
+function closeAdminModal(e) {
+  if (e.target.id === "admin-modal") closeAdminModalDirect();
+}
+
+function closeAdminModalDirect() {
+  document.getElementById("admin-modal").classList.remove("open");
+}
+
+function submitAdminPassword() {
+  const val = document.getElementById("admin-password-input").value;
+  if (val === ADMIN_PASSWORD) {
+    isUnlocked = true;
+    closeAdminModalDirect();
+    updateAdminNavBtn();
+    renderAll();
+  } else {
+    const err = document.getElementById("admin-error");
+    err.textContent = "❌ Incorrect password. Try again.";
+    err.style.display = "block";
+    document.getElementById("admin-password-input").value = "";
+    document.getElementById("admin-password-input").focus();
+  }
+}
+
+function lockAdmin() {
+  isUnlocked = false;
+  updateAdminNavBtn();
+  renderAll();
+  closeModalDirect();
+}
+
+function updateAdminNavBtn() {
+  const btn = document.getElementById("admin-nav-btn");
+  if (!btn) return;
+  if (isUnlocked) {
+    btn.textContent = "🔓 Admin (click to lock)";
+    btn.classList.add("unlocked");
+  } else {
+    btn.textContent = "🔒 Edit Points";
+    btn.classList.remove("unlocked");
+  }
+  const ppBtn = document.getElementById("pp-add-pts-btn");
+  if (ppBtn) ppBtn.style.display = isUnlocked ? "inline-flex" : "none";
+}
+
+// Allow pressing Enter in the password input to submit
+document.addEventListener("DOMContentLoaded", () => {
+  const inp = document.getElementById("admin-password-input");
+  if (inp) inp.addEventListener("keydown", e => { if (e.key === "Enter") submitAdminPassword(); });
+});
+
+// ── 🖼️ IMAGE RENDER POINT ─────────────────────────────────────────────────────
 // Each member has an "icon" field in data.js. It can be:
 //   • An emoji string  →  rendered as a <span>
 //   • A file path      →  rendered as an <img> (e.g. "images/alice.jpg")
@@ -292,7 +213,6 @@ function renderAll() {
   renderHomeStats();
   renderMilestoneNodes();
   renderLeaderboard();
-  renderMembersGrid();
   renderAwardsFull();
   renderGroupMilestonesFull();
 }
@@ -341,31 +261,6 @@ function renderLeaderboard() {
         <span class="lb-name lb-name-link" onclick="openProfilePage(${m.id})">${escHtml(m.name)}</span>
         <div class="lb-bar-wrap"><div class="lb-bar" style="width:${bar}%"></div></div>
         <span class="lb-pts">${m.points.toLocaleString()} pts</span>
-      </div>`;
-  }).join("");
-}
-
-// ── Add-Points members grid — sorted by points (highest first) ────────────────
-function renderMembersGrid() {
-  const el = document.getElementById("members-grid");
-  if (!el) return;
-
-  // Sort descending by points so highest earners appear first
-  const sorted = [...members].sort((a, b) => b.points - a.points);
-
-  el.innerHTML = sorted.map(m => {
-    const award = [...AWARDS].reverse().find(a => m.points >= a.points);
-    const canEdit = isApproved;
-    return `
-      <div class="member-card ${canEdit ? "" : "member-card-locked"}"
-           onclick="${canEdit ? `openMemberModal(${m.id})` : "showLoginOverlay()"}">
-        <div class="member-icon">${renderMemberIcon(m.icon, "member-icon-inner")}</div>
-        <div class="member-name">${escHtml(m.name)}</div>
-        <div class="member-pts">${m.points.toLocaleString()} <span>pts</span></div>
-        ${award
-          ? `<div class="member-rank" style="color:${award.color}">${renderMemberIcon(award.icon)} ${award.title}</div>`
-          : '<div class="member-rank">🚦 No rank yet</div>'}
-        <div class="member-edit-hint">${canEdit ? "Click to add points" : "🔒 Sign in to add points"}</div>
       </div>`;
   }).join("");
 }
@@ -451,9 +346,9 @@ function renderProfilePage(id) {
   document.getElementById("pp-bio-display").textContent =
     m.bio || "No bio yet. Submit a PR on GitHub to add one — see README.md.";
 
-  // ── "Add Points" button visibility ──────────────────────────────────────
+  // ── "Add Points" button — only visible when admin is unlocked ────────────
   const addBtn = document.getElementById("pp-add-pts-btn");
-  if (addBtn) addBtn.style.display = isApproved ? "inline-flex" : "none";
+  if (addBtn) addBtn.style.display = isUnlocked ? "inline-flex" : "none";
 
   // ── Personal awards progress ─────────────────────────────────────────────
   const awardsEl = document.getElementById("pp-awards");
@@ -478,22 +373,20 @@ function renderProfilePage(id) {
   }).join("");
 }
 
-// Opens the add-points modal for the currently-displayed profile page member.
-// Only reachable when isApproved = true (button is hidden otherwise).
+// Opens the add-points modal from the profile page.
+// Button is only visible when isUnlocked = true.
 function openAddPointsForProfile() {
-  if (!isApproved) return;
+  if (!isUnlocked) return;
   if (profilePageId === null) return;
   openMemberModal(profilePageId);
 }
 
 // ── Add-Points modal ──────────────────────────────────────────────────────────
 function openMemberModal(id) {
-  if (!isApproved) { showLoginOverlay(); return; }
+  if (!isUnlocked) { openAdminModal(); return; }
   selectedMemberId = id;
   const m = members.find(x => x.id === id);
-  // renderMemberIcon — icon field from data.js; images/ path renders as <img>
-  const iconHTML = renderMemberIcon(m.icon);
-  document.getElementById("modal-member-icon").innerHTML = iconHTML;
+  document.getElementById("modal-member-icon").innerHTML = renderMemberIcon(m.icon);
   document.getElementById("modal-member-name").textContent = m.name;
   document.getElementById("modal-member-pts").textContent  = m.points.toLocaleString() + " pts";
   document.getElementById("custom-input").value = "";
@@ -511,7 +404,7 @@ function closeModalDirect() {
 
 // ── Add / deduct points → Firestore ──────────────────────────────────────────
 async function addPoints(amount) {
-  if (!isApproved) return;
+  if (!isUnlocked) return;
   if (selectedMemberId === null) return;
   const m = members.find(x => x.id === selectedMemberId);
   const newPts = Math.max(0, m.points + amount);
@@ -528,7 +421,7 @@ async function addPoints(amount) {
 }
 
 function addCustomPoints() {
-  if (!isApproved) return;
+  if (!isUnlocked) return;
   const val = parseInt(document.getElementById("custom-input").value, 10);
   if (isNaN(val) || val === 0) return;
   addPoints(val);

@@ -245,7 +245,8 @@ body {
 }
 
 .lb-rank  { font-size: 1.3rem; min-width: 38px; }
-.lb-icon  { font-size: 1.3rem; }
+.lb-icon  { font-size: 1.3rem; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.lb-icon img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--card-border); }
 .lb-name  { flex: 1; font-weight: 600; font-size: 0.95rem; }
 .lb-bar-wrap {
   flex: 2;
@@ -963,4 +964,82 @@ img.pp-icon-inner {
   font-size: 0.85rem;
   margin-bottom: 14px;
 }
+
+/* ── "What are SOMARS Points?" explainer card ────────────────────────────── */
+.points-explainer {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  background: rgba(0, 212, 255, 0.05);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: var(--radius);
+  padding: 24px 28px;
+  margin-bottom: 36px;
+  backdrop-filter: blur(6px);
+}
+
+.points-explainer-icon {
+  font-size: 2.8rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.points-explainer-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--accent);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.points-explainer-text {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin-bottom: 14px;
+}
+
+.points-explainer-text strong { color: var(--text); }
+
+.points-ways {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.points-way {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 4px 12px;
+}
+
+.points-way span { font-size: 1rem; }
+
+@media (max-width: 600px) {
+  .points-explainer { flex-direction: column; gap: 12px; padding: 18px 16px; }
+}
+
+/* ── Admin modal username input ──────────────────────────────────────────── */
+#admin-username-input {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 9px 14px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+#admin-username-input:focus { border-color: var(--accent); }
 

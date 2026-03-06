@@ -119,10 +119,11 @@ function handleAdminNavClick() {
 
 function openAdminModal() {
   const modal = document.getElementById("admin-modal");
+  document.getElementById("admin-username-input").value = "";
   document.getElementById("admin-password-input").value = "";
   document.getElementById("admin-error").style.display = "none";
   modal.classList.add("open");
-  setTimeout(() => document.getElementById("admin-password-input").focus(), 80);
+  setTimeout(() => document.getElementById("admin-username-input").focus(), 80);
 }
 
 function closeAdminModal(e) {
@@ -134,18 +135,19 @@ function closeAdminModalDirect() {
 }
 
 function submitAdminPassword() {
-  const val = document.getElementById("admin-password-input").value;
-  if (val === ADMIN_PASSWORD) {
+  const user = document.getElementById("admin-username-input").value;
+  const pass = document.getElementById("admin-password-input").value;
+  if (user === ADMIN_USERNAME && pass === ADMIN_PASSWORD) {
     isUnlocked = true;
     closeAdminModalDirect();
     updateAdminNavBtn();
     renderAll();
   } else {
     const err = document.getElementById("admin-error");
-    err.textContent = "❌ Incorrect password. Try again.";
+    err.textContent = "❌ Incorrect username or password. Try again.";
     err.style.display = "block";
     document.getElementById("admin-password-input").value = "";
-    document.getElementById("admin-password-input").focus();
+    document.getElementById("admin-username-input").focus();
   }
 }
 
@@ -170,10 +172,12 @@ function updateAdminNavBtn() {
   if (ppBtn) ppBtn.style.display = isUnlocked ? "inline-flex" : "none";
 }
 
-// Allow pressing Enter in the password input to submit
+// Allow pressing Enter in either credential field to submit
 document.addEventListener("DOMContentLoaded", () => {
-  const inp = document.getElementById("admin-password-input");
-  if (inp) inp.addEventListener("keydown", e => { if (e.key === "Enter") submitAdminPassword(); });
+  const uInp = document.getElementById("admin-username-input");
+  const pInp = document.getElementById("admin-password-input");
+  if (uInp) uInp.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("admin-password-input").focus(); });
+  if (pInp) pInp.addEventListener("keydown", e => { if (e.key === "Enter") submitAdminPassword(); });
 });
 
 // ── 🖼️ IMAGE RENDER POINT ─────────────────────────────────────────────────────

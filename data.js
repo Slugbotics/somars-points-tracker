@@ -40,12 +40,12 @@
 //
 // ════════════════════════════════════════════════════════════════════════════
 
-// ── Admin Password ────────────────────────────────────────────────────────
-// This is the password required to unlock the "Edit Points" button in the nav.
-// Change this value and push to GitHub to update the password.
-// NOTE: This is a simple deterrent — the password is visible in the source.
-//       Do not reuse a sensitive personal password here.
-const ADMIN_PASSWORD = "somars2026";  // ← change this to your chosen password
+// ── Admin Credentials ─────────────────────────────────────────────────────
+// Username + password required to unlock the "Edit Points" button.
+// Change these values and push to GitHub to update credentials.
+// NOTE: These are visible in the source — don't reuse sensitive passwords.
+const ADMIN_USERNAME = "somarsadmin123";  // ← change this
+const ADMIN_PASSWORD = "nathanisthebest";  // ← change this to your chosen password
 
 const DEFAULT_MEMBERS = [
   // ── Edit your entry below ─────────────────────────────────────────────────

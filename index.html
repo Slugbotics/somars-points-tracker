@@ -20,16 +20,18 @@
         <div>
           <div class="modal-name">Admin Access</div>
           <div style="font-size:0.8rem;color:var(--text-muted)">Enter the admin password to edit points</div>
-        </div>
-        <button class="modal-close" onclick="closeAdminModalDirect()">✕</button>
+        </div>        <button class="modal-close" onclick="closeAdminModalDirect()">✕</button>
       </div>
       <div id="admin-error" class="login-error" style="display:none"></div>
-      <div class="custom-row" style="margin-top:8px">
-        <input type="password" id="admin-password-input" placeholder="Password..." autocomplete="off"/>
-        <button class="custom-add-btn" onclick="submitAdminPassword()">Unlock</button>
+      <div class="custom-row" style="margin-top:8px;flex-direction:column;gap:8px">
+        <input type="text"     id="admin-username-input" placeholder="Username..."  autocomplete="off"/>
+        <div style="display:flex;gap:8px">
+          <input type="password" id="admin-password-input" placeholder="Password..." autocomplete="off" style="flex:1"/>
+          <button class="custom-add-btn" onclick="submitAdminPassword()">Unlock</button>
+        </div>
       </div>
       <p style="font-size:0.75rem;color:var(--text-muted);margin-top:14px;line-height:1.5">
-        Password is set in <code>data.js</code> → <code>ADMIN_PASSWORD</code>.
+        Admin username + password are set in <code>data.js</code> → <code>ADMIN_PASSWORD</code>.
       </p>
     </div>
   </div>
@@ -55,6 +57,25 @@
       <div class="drone-anim">🚁</div>
       <h1 class="hero-title">SOMARS MISSION CONTROL</h1>
       <p class="hero-sub">Aerospace & Drone Club · Points Command Center</p>
+    </div>
+
+    <!-- What are SOMARS Points? -->
+    <div class="points-explainer">
+      <div class="points-explainer-icon">🛸</div>
+      <div class="points-explainer-body">
+        <div class="points-explainer-title">What are SOMARS Points?</div>
+        <p class="points-explainer-text">
+          SOMARS Points are how the <strong>SOMARS autonomous drone team</strong> — part of
+          <strong>UCSC Slugbotics</strong> — tracks and rewards team participation.
+          Show up, contribute, and be part of the mission to earn points.
+        </p>
+        <div class="points-ways">
+          <div class="points-way"><span>📅</span> Attending meetings</div>
+          <div class="points-way"><span>🔧</span> Contributing to the drone build</div>
+          <div class="points-way"><span>🎉</span> Showing up to club events</div>
+          <div class="points-way"><span>🤝</span> Being an active part of the team</div>
+        </div>
+      </div>
     </div>
 
     <!-- Top stats -->
